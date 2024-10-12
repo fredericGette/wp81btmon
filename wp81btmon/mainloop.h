@@ -11,7 +11,7 @@
 
 typedef void(*mainloop_destroy_func) (void *user_data);
 
-typedef void(*mainloop_event_func) (int fd, uint32_t events, void *user_data);
+typedef void(*mainloop_event_func) (HANDLE fd, uint32_t events, void *user_data);
 typedef void(*mainloop_timeout_func) (int id, void *user_data);
 typedef void(*mainloop_signal_func) (int signum, void *user_data);
 

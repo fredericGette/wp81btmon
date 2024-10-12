@@ -24,16 +24,10 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="shared\mainloop.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="packet.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Getopt-for-Visual-Studio\getopt.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="shared\tty.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="display.h">
@@ -52,6 +46,24 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="control.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="btsnoop.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="portable_endian.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32Api.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tty.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mainloop.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hci.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -80,10 +92,13 @@
     <ClCompile Include="lmp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="shared\mainloop.cpp">
+    <ClCompile Include="packet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="packet.cpp">
+    <ClCompile Include="btsnoop.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mainloop.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

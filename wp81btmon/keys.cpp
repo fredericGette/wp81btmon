@@ -1,7 +1,8 @@
 #include "stdafx.h"
 
 void keys_setup(void)
-{}
+{
+}
 
 void keys_cleanup(void)
 {}

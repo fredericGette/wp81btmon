@@ -15,8 +15,9 @@
 #include <windows.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <atomic>
 #include <winsock2.h>
-#include "shared/tty.h"
+#include "tty.h"
 #include "mainloop.h"
 #include "packet.h"
 #include "display.h"
@@ -25,11 +26,11 @@
 #include "analyze.h"
 #include "ellisys.h"
 #include "control.h"
-
-extern "C" {
-	WINBASEAPI BOOL	WINAPI SetConsoleCtrlHandler(PHANDLER_ROUTINE HandlerRoutine, BOOL Add);
-	char *getenv(const char *varname);
-}
+#include "btsnoop.h"
+#include "hci.h"
+#include "portable_endian.h"
+#include "Win32Api.h"
 
 
 #define VERSION "wp81-5.78" 
+#define	EINVAL 22	/* Invalid argument */

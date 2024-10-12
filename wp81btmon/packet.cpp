@@ -1,5 +1,7 @@
 #include "stdafx.h"
 
+static unsigned long filter_mask = 0;
+
 struct packet_conn_data *packet_get_conn_data(uint16_t handle)
 {
 	return NULL;
@@ -11,13 +13,27 @@ bool packet_has_filter(unsigned long filter)
 {
 	return false;
 }
-void packet_set_filter(unsigned long filter){}
+
+void packet_set_filter(unsigned long filter)
+{
+	filter_mask = filter;
+}
+
 void packet_add_filter(unsigned long filter){}
 void packet_del_filter(unsigned long filter){}
 
-void packet_set_priority(const char *priority){}
-void packet_select_index(uint16_t index){}
-void packet_set_fallback_manufacturer(uint16_t manufacturer){}
+void packet_set_priority(const char *priority)
+{
+	printf("TESTFG: not implemented yet.\n");
+}
+void packet_select_index(uint16_t index)
+{
+	printf("TESTFG: not implemented yet.\n");
+}
+void packet_set_fallback_manufacturer(uint16_t manufacturer)
+{
+	printf("TESTFG: not implemented yet.\n");
+}
 void packet_set_msft_evt_prefix(const uint8_t *prefix, uint8_t len){}
 
 void packet_hexdump(const unsigned char *buf, uint16_t len){}
@@ -84,4 +100,7 @@ void packet_ctrl_command(struct timeval *tv, struct ucred *cred, uint16_t index,
 void packet_ctrl_event(struct timeval *tv, struct ucred *cred, uint16_t index,
 	const void *data, uint16_t size) {}
 
-void packet_todo(void) {}
+void packet_todo(void) 
+{
+	printf("TESTFG: not implemented yet.\n");
+}

@@ -15,6 +15,87 @@ static bool hcidump_fallback = false;
 
 static int server_fd = -1;
 
+/*
+Called by the mainloop
+Write HCI message to the btsnoop file when this file exists.
+*/
+static void data_callback(HANDLE fd, uint32_t events, void *user_data)
+{
+	struct control_data *data = user_data;
+	unsigned char control[64];
+	struct mgmt_hdr hdr;
+	struct msghdr msg;
+	struct iovec iov[2];
+
+	if (events & (EPOLLERR | EPOLLHUP)) {
+		mainloop_remove_fd(data->fd);
+		return;
+	}
+
+	iov[0].iov_base = &hdr;
+	iov[0].iov_len = MGMT_HDR_SIZE;
+	iov[1].iov_base = data->buf;
+	iov[1].iov_len = sizeof(data->buf);
+
+	memset(&msg, 0, sizeof(msg));
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 2;
+	msg.msg_control = control;
+	msg.msg_controllen = sizeof(control);
+
+	while (1) {
+		struct cmsghdr *cmsg;
+		struct timeval *tv = NULL;
+		struct timeval ctv;
+		struct ucred *cred = NULL;
+		struct ucred ccred;
+		uint16_t opcode, index, pktlen;
+		ssize_t len;
+
+		len = recvmsg(data->fd, &msg, MSG_DONTWAIT);
+		if (len < 0)
+			break;
+
+		if (len < MGMT_HDR_SIZE)
+			break;
+
+		for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+					cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+			if (cmsg->cmsg_level != SOL_SOCKET)
+				continue;
+
+			if (cmsg->cmsg_type == SCM_TIMESTAMP) {
+				memcpy(&ctv, CMSG_DATA(cmsg), sizeof(ctv));
+				tv = &ctv;
+			}
+
+			if (cmsg->cmsg_type == SCM_CREDENTIALS) {
+				memcpy(&ccred, CMSG_DATA(cmsg), sizeof(ccred));
+				cred = &ccred;
+			}
+		}
+
+		opcode = le16_to_cpu(hdr.opcode);
+		index  = le16_to_cpu(hdr.index);
+		pktlen = le16_to_cpu(hdr.len);
+
+		switch (data->channel) {
+		case HCI_CHANNEL_CONTROL:
+			packet_control(tv, cred, index, opcode,
+							data->buf, pktlen);
+			break;
+		case HCI_CHANNEL_MONITOR:
+			btsnoop_write_hci(btsnoop_file, tv, index, opcode, 0,
+							data->buf, pktlen);
+			ellisys_inject_hci(tv, index, opcode,
+							data->buf, pktlen);
+			packet_monitor(tv, cred, index, opcode,
+							data->buf, pktlen);
+			break;
+		}
+	}
+}
+
 bool control_writer(const char *path)
 {
 	btsnoop_file = btsnoop_create(path, 0, 0, BTSNOOP_FORMAT_MONITOR);

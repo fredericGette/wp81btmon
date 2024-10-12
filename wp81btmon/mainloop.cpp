@@ -75,6 +75,7 @@ int mainloop_run(void)
 	//	struct epoll_event events[MAX_EPOLL_EVENTS];
 		int n, nfds;
 
+		// TESTFG : poll kernel driver to fetch HCI messages 
 	//	nfds = epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS, -1);
 		if (nfds < 0)
 			continue;
@@ -82,6 +83,7 @@ int mainloop_run(void)
 		for (n = 0; n < nfds; n++) {
 			struct mainloop_data *data = events[n].data.ptr;
 
+			// call control.data_callback
 			data->callback(data->fd, events[n].events,
 				data->user_data);
 		}

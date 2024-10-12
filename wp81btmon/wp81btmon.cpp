@@ -256,6 +256,7 @@ int main(int argc, char* argv[])
 		return EXIT_SUCCESS;
 	}
 
+	// Create the btsnoop file when required
 	if (writer_path && !control_writer(writer_path)) {
 		printf("Failed to open '%s'\n", writer_path);
 		return EXIT_FAILURE;
@@ -264,15 +265,19 @@ int main(int argc, char* argv[])
 	if (ellisys_server)
 		ellisys_enable(ellisys_server, ellisys_port);
 
+	// Start reading local HCI messages
 	if (!tty && !jlink && control_tracing() < 0)
 		return EXIT_FAILURE;
 
+	// Start reading external HCI messages
 	if (tty && control_tty(tty, tty_speed) < 0)
 		return EXIT_FAILURE;
 
+	// Start reading external HCI messages
 	if (jlink && control_rtt(jlink, rtt) < 0)
 		return EXIT_FAILURE;
 
+	// Start mainloop: dispatch HCI messages from readers to writers
 	exit_status = mainloop_run_with_signal(consoleHandler, NULL);
 
 	keys_cleanup();

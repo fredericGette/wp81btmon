@@ -11,6 +11,7 @@ extern "C" {
 	WINBASEAPI BOOL	WINAPI SetConsoleCtrlHandler(PHANDLER_ROUTINE HandlerRoutine, BOOL Add);
 	char *getenv(const char *varname);
 	WINSOCK_API_LINKAGE	u_long WSAAPI htonl(_In_ u_long hostlong);
+	WINBASEAPI BOOL WINAPI DeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, LPVOID lpInBuffer, DWORD nInBufferSize, LPVOID lpOutBuffer, DWORD nOutBufferSize, LPDWORD lpBytesReturned, LPOVERLAPPED lpOverlapped);
 }
 
 #define WIN32API_TOSTRING(x) #x
@@ -49,6 +50,7 @@ public:
 	WIN32API_DEFINE_PROC(GetModuleHandleW);
 	WIN32API_DEFINE_PROC(CreateFileA);
 	WIN32API_DEFINE_PROC(SetConsoleCtrlHandler);
+	WIN32API_DEFINE_PROC(DeviceIoControl);
 	const HMODULE m_MSVCR110;
 	WIN32API_DEFINE_PROC(getenv);
 	const HMODULE m_WS2_32;
@@ -59,6 +61,7 @@ public:
 		WIN32API_INIT_PROC(m_Kernelbase, GetModuleHandleW),
 		WIN32API_INIT_PROC(m_Kernelbase, CreateFileA),
 		WIN32API_INIT_PROC(m_Kernelbase, SetConsoleCtrlHandler),
+		WIN32API_INIT_PROC(m_Kernelbase, DeviceIoControl),
 		m_MSVCR110(GetModuleHandleW(L"MSVCR110.DLL")),
 		WIN32API_INIT_PROC(m_MSVCR110, getenv),
 		m_WS2_32(GetModuleHandleW(L"m_WS2_32.DLL")),

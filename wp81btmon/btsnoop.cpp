@@ -181,7 +181,7 @@ bool btsnoop_write(struct btsnoop *btsnoop, struct timeval *tv, uint32_t flags,
 	pkt.len = htobe32(size);
 	pkt.flags = htobe32(flags);
 	pkt.drops = htobe32(drops);
-	pkt.ts = htobe64(ts + 0x00E03AB44A676000ll);
+	pkt.ts = htobe64(ts + 0x00E03AB44A676000ll); // January 1st 2000 AD
 
 	if (FALSE == WriteFile(btsnoop->fd, &pkt, BTSNOOP_PKT_SIZE, &written, NULL)) {
 		return false;
@@ -252,6 +252,8 @@ bool btsnoop_write_hci(struct btsnoop *btsnoop, struct timeval *tv,
 
 	case BTSNOOP_FORMAT_MONITOR:
 		flags = ((uint32_t)index << 16) | opcode;
+		// bit #0 : Direction flag 0 = Sent, 1 = Received
+		// bit #1 : Command flag 0 = Data, 1 = Command/Event
 		break;
 
 	default:

@@ -11,15 +11,9 @@
 
 #include "stdafx.h"
 
-struct signal_data {
-	struct io *io;
-	PHANDLER_ROUTINE func;
-	void *user_data;
-};
-
-#define MAX_EPOLL_EVENTS 10
-
-static int epoll_terminate;
+static int mainloop_terminate;
+static bool tracingChannelMonitor;
+static bool tracingChannelControl;
 static int exit_status = EXIT_SUCCESS;
 
 struct mainloop_data {
@@ -33,6 +27,7 @@ struct mainloop_data {
 #define MAX_MAINLOOP_ENTRIES 128
 
 static struct mainloop_data *mainloop_list[MAX_MAINLOOP_ENTRIES];
+static int mainloop_list_size;
 
 void mainloop_init(void)
 {
@@ -40,8 +35,11 @@ void mainloop_init(void)
 
 	for (i = 0; i < MAX_MAINLOOP_ENTRIES; i++)
 		mainloop_list[i] = NULL;
+	mainloop_list_size = 0;
 
-	epoll_terminate = 0;
+	mainloop_terminate = 0;
+	tracingChannelMonitor = FALSE;
+	tracingChannelControl = FALSE;
 
 	// TESTFG
 	//mainloop_notify_init();
@@ -49,7 +47,7 @@ void mainloop_init(void)
 
 void mainloop_quit(void)
 {
-	epoll_terminate = 1;
+	mainloop_terminate = 1;
 
 	// TESTFG
 	//mainloop_sd_notify("STOPPING=1");
@@ -58,34 +56,32 @@ void mainloop_quit(void)
 void mainloop_exit_success(void)
 {
 	exit_status = EXIT_SUCCESS;
-	epoll_terminate = 1;
+	mainloop_terminate = 1;
 }
 
 void mainloop_exit_failure(void)
 {
 	exit_status = EXIT_FAILURE;
-	epoll_terminate = 1;
+	mainloop_terminate = 1;
 }
 
 int mainloop_run(void)
 {
 	unsigned int i;
 
-	while (!epoll_terminate) {
-	//	struct epoll_event events[MAX_EPOLL_EVENTS];
-		int n, nfds;
+	while (!mainloop_terminate) {
+		int n;
+		void *user_data = NULL;
 
-		// TESTFG : poll kernel driver to fetch HCI messages 
-	//	nfds = epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS, -1);
-		if (nfds < 0)
-			continue;
+		if (tracingChannelMonitor)
+		{
+			user_data = control_get_tracing();
+		}
 
-		for (n = 0; n < nfds; n++) {
-			struct mainloop_data *data = events[n].data.ptr;
+		for (n = 0; n < mainloop_list_size; n++) {
+			struct mainloop_data *data = mainloop_list[n];
 
-			// call control.data_callback
-			data->callback(data->fd, events[n].events,
-				data->user_data);
+			data->callback(data->fd, 0, user_data);
 		}
 	}
 
@@ -95,7 +91,6 @@ int mainloop_run(void)
 		mainloop_list[i] = NULL;
 
 		if (data) {
-			//epoll_ctl(epoll_fd, EPOLL_CTL_DEL, data->fd, NULL);
 
 			if (data->destroy)
 				data->destroy(data->user_data);
@@ -103,9 +98,6 @@ int mainloop_run(void)
 			free(data);
 		}
 	}
-
-	//close(epoll_fd);
-	//epoll_fd = 0;
 
 	// TESTFG
 	//mainloop_notify_exit();
@@ -115,7 +107,6 @@ int mainloop_run(void)
 
 int mainloop_run_with_signal(PHANDLER_ROUTINE func, void *user_data)
 {
-	struct signal_data *data;
 	int ret;
 
 	if (!func)
@@ -123,22 +114,42 @@ int mainloop_run_with_signal(PHANDLER_ROUTINE func, void *user_data)
 
 	SetConsoleCtrlHandler(func, TRUE);
 
-	data = new signal_data;
-	data->func = func;
-	data->user_data = user_data;
-
 	ret = mainloop_run();
-
-	free(data);
 
 	return ret;
 }
 
-int mainloop_add_fd(int fd, uint32_t events, mainloop_event_func callback,
+int mainloop_add_fd(HANDLE fd, uint32_t events, mainloop_event_func callback,
 	void *user_data, mainloop_destroy_func destroy)
 {
+	struct mainloop_data *data;
+
+	if (mainloop_list_size >= MAX_MAINLOOP_ENTRIES - 1)
+		return -EINVAL;
+
+	data = (mainloop_data *)malloc(sizeof(*data));
+	if (!data)
+		return -ENOMEM;
+
+	memset(data, 0, sizeof(*data));
+	data->fd = fd;
+	data->events = events;
+	data->callback = callback;
+	data->destroy = destroy;
+	data->user_data = user_data;
+
+	mainloop_list[mainloop_list_size++] = data;
+
 	return 0;
 }
+
+// Activate reading from the local driver filter
+void mainloop_activate_tracing(bool channelControl)
+{
+	tracingChannelMonitor = TRUE;
+	tracingChannelControl = channelControl;
+}
+
 
 int mainloop_modify_fd(int fd, uint32_t events)
 {

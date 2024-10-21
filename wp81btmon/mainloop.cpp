@@ -29,28 +29,36 @@ struct mainloop_data {
 static struct mainloop_data *mainloop_list[MAX_MAINLOOP_ENTRIES];
 static int mainloop_list_size;
 
-void mainloop_init(void)
+void mainloop_init(int mainLoopMode)
 {
-	unsigned int i;
-
-	for (i = 0; i < MAX_MAINLOOP_ENTRIES; i++)
-		mainloop_list[i] = NULL;
-	mainloop_list_size = 0;
-
 	mainloop_terminate = 0;
-	tracingChannelMonitor = FALSE;
-	tracingChannelControl = FALSE;
 
-	// TESTFG
-	//mainloop_notify_init();
+	switch (mainLoopMode) {
+	case MODE_READ_EVENTS:
+		control_init_read_events();
+		break;
+	case MODE_SEND_COMMANDS:
+		control_init_send_commands();
+		break;
+	}
+}
+
+void mainloop_cleanup(int mainLoopMode)
+{
+	switch (mainLoopMode) {
+	case MODE_READ_EVENTS:
+		control_cleanup_read_events();
+		break;
+	case MODE_SEND_COMMANDS:
+		control_cleanup_send_commands();
+		break;
+	}
 }
 
 void mainloop_quit(void)
 {
+	printf("Terminating...\n");
 	mainloop_terminate = 1;
-
-	// TESTFG
-	//mainloop_sd_notify("STOPPING=1");
 }
 
 void mainloop_exit_success(void)
@@ -65,47 +73,31 @@ void mainloop_exit_failure(void)
 	mainloop_terminate = 1;
 }
 
-int mainloop_run(void)
+int mainloop_run(int mainLoopMode)
 {
-	unsigned int i;
 
 	while (!mainloop_terminate) {
-		int n;
-		void *user_data = NULL;
-
-		if (tracingChannelMonitor)
-		{
-			user_data = control_get_tracing();
-		}
-
-		for (n = 0; n < mainloop_list_size; n++) {
-			struct mainloop_data *data = mainloop_list[n];
-
-			data->callback(data->fd, 0, user_data);
-		}
-	}
-
-	for (i = 0; i < MAX_MAINLOOP_ENTRIES; i++) {
-		struct mainloop_data *data = mainloop_list[i];
-
-		mainloop_list[i] = NULL;
-
-		if (data) {
-
-			if (data->destroy)
-				data->destroy(data->user_data);
-
-			free(data);
+	
+		switch (mainLoopMode) {
+		case MODE_READ_EVENTS:
+			if (!control_read_events())
+			{
+				mainloop_exit_failure();
+			}
+			break;
+		case MODE_SEND_COMMANDS:
+			if (!control_send_commands())
+			{
+				mainloop_exit_failure();
+			}
+			break;
 		}
 	}
-
-	// TESTFG
-	//mainloop_notify_exit();
 
 	return exit_status;
 }
 
-int mainloop_run_with_signal(PHANDLER_ROUTINE func, void *user_data)
+int mainloop_run_with_signal(PHANDLER_ROUTINE func, int mainLoopMode)
 {
 	int ret;
 
@@ -114,7 +106,7 @@ int mainloop_run_with_signal(PHANDLER_ROUTINE func, void *user_data)
 
 	SetConsoleCtrlHandler(func, TRUE);
 
-	ret = mainloop_run();
+	ret = mainloop_run(mainLoopMode);
 
 	return ret;
 }

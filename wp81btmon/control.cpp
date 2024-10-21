@@ -11,9 +11,9 @@
 #include "stdafx.h"
 
 #define CONTROL_DEVICE 0x8000
-#define IOCTL_CONTROL_WRITE_HCI CTL_CODE(CONTROL_DEVICE, 0x800, METHOD_BUFFERED, FILE_ANY_ACCESS) 
-#define IOCTL_CONTROL_READ_HCI	CTL_CODE(CONTROL_DEVICE, 0x801, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define IOCTL_CONTROL_CMD		CTL_CODE(CONTROL_DEVICE, 0x802, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IOCTL_CONTROL_WRITE_HCI CTL_CODE(CONTROL_DEVICE, 0x800, METHOD_NEITHER, FILE_ANY_ACCESS) // 0x80002003
+#define IOCTL_CONTROL_READ_HCI	CTL_CODE(CONTROL_DEVICE, 0x801, METHOD_NEITHER, FILE_ANY_ACCESS) // 0x80002007
+#define IOCTL_CONTROL_CMD		CTL_CODE(CONTROL_DEVICE, 0x802, METHOD_NEITHER, FILE_ANY_ACCESS) // 0x8000200B
 
 //
 // The format of a single HCI message stored in HCI_LOG_BUFFER::LogEntries.
@@ -59,6 +59,9 @@ struct control_data {
 	unsigned char buf[BTSNOOP_MAX_PACKET_SIZE];
 	uint16_t offset;
 };
+
+UCHAR* inputBuffer;
+UCHAR* outputBuffer;
 
 /*
 Called by the mainloop
@@ -124,18 +127,20 @@ void control_cmd_bthx(bool blockBthx)
 	}
 
 	DWORD returned;
-	char command[1] = { 0 };
+	inputBuffer = (UCHAR*)malloc(1);
+	inputBuffer[0] = 0;
 	if (blockBthx == TRUE)
 	{
-		command[0] = 1;
+		inputBuffer[0] = 1;
 	}
-	BOOL success = DeviceIoControl(hciControlDevice, IOCTL_CONTROL_CMD, command, 1, NULL, 0, &returned, NULL);
+	BOOL success = DeviceIoControl(hciControlDevice, IOCTL_CONTROL_CMD, inputBuffer, 1, NULL, 0, &returned, NULL);
 	if (!success)
 	{
 		printf("Failed to send DeviceIoControl! 0x%08X", GetLastError());
 	}
 
 	CloseHandle(hciControlDevice);
+	free(inputBuffer);
 }
 
 void control_block_bthx(void)
@@ -146,6 +151,135 @@ void control_block_bthx(void)
 void control_allow_bthx(void)
 {
 	control_cmd_bthx(false);
+}
+
+void control_init_read_events(void)
+{
+	hciControlDevice = CreateFileA("\\\\.\\wp81controldevice", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+	if (hciControlDevice == INVALID_HANDLE_VALUE)
+	{
+		printf("Failed to open wp81controldevice device! 0x%08X\n", GetLastError());
+		return;
+	}
+
+	inputBuffer = (UCHAR*)malloc(4);
+	outputBuffer = (UCHAR*)malloc(262);
+
+	printf("Start reading HCI events...\n");
+}
+
+void control_cleanup_read_events(void)
+{
+	CloseHandle(hciControlDevice);
+	free(inputBuffer);
+	free(outputBuffer);
+}
+
+void printBuffer2HexString(UCHAR* buffer, size_t bufSize)
+{
+	FILETIME SystemFileTime;
+	UCHAR *p = buffer;
+	UINT i = 0;
+
+	if (bufSize < 1)
+	{
+		return;
+	}
+
+	GetSystemTimeAsFileTime(&SystemFileTime);
+	printf("%010u.%010u ", SystemFileTime.dwHighDateTime, SystemFileTime.dwLowDateTime);
+	for (; i<bufSize; i++)
+	{
+		printf("%02X ", p[i]);
+	}
+	printf("\n");
+}
+
+bool control_read_events(void)
+{
+	DWORD information = 0;
+	bool success;
+
+	inputBuffer[0] = 0x04;
+	inputBuffer[1] = 0x00;
+	inputBuffer[2] = 0x00;
+	inputBuffer[3] = 0x00;
+	success = DeviceIoControl(hciControlDevice, IOCTL_CONTROL_READ_HCI, inputBuffer, 4, outputBuffer, 262, &information, nullptr);
+	if (success)
+	{
+		printBuffer2HexString(outputBuffer, information);
+	}
+	else
+	{
+		printf("Failed to send IOCTL_CONTROL_READ_HCI! 0x%X\n", GetLastError());
+	}
+
+	return success;
+}
+
+void control_init_send_commands(void)
+{
+	hciControlDevice = CreateFileA("\\\\.\\wp81controldevice", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+	if (hciControlDevice == INVALID_HANDLE_VALUE)
+	{
+		printf("Failed to open wp81controldevice device! 0x%08X\n", GetLastError());
+		return;
+	}
+
+	inputBuffer = (UCHAR*)malloc(262);
+	outputBuffer = (UCHAR*)malloc(4);
+
+	printf("Input HCI commands...\n");
+}
+
+void control_cleanup_send_commands(void)
+{
+	CloseHandle(hciControlDevice);
+	free(inputBuffer);
+	free(outputBuffer);
+}
+
+bool control_send_commands(void)
+{
+	DWORD information = 0;
+	bool success;
+	char line[262*3+1];
+
+	printf(">");
+	if (gets_s(line, 262 * 3) == NULL) {
+		printf("Invalid input. Max length is %d characters.\n", 262 * 3);
+		return TRUE; // try again.
+	}
+
+	printf("input=[%s]\n", line);
+
+	// Inquiry
+	// 08 00 00 00 01 01 04 05 33 8B 9E 08 00
+	inputBuffer[0] = 0x08;
+	inputBuffer[1] = 0x00;
+	inputBuffer[2] = 0x00;
+	inputBuffer[3] = 0x00;
+	inputBuffer[4] = 0x01;
+	inputBuffer[5] = 0x01;
+	inputBuffer[6] = 0x04;
+	inputBuffer[7] = 0x05;
+	inputBuffer[8] = 0x33;
+	inputBuffer[9] = 0x8B;
+	inputBuffer[10] = 0x9E;
+	inputBuffer[11] = 0x08;
+	inputBuffer[12] = 0x00;
+	printBuffer2HexString(inputBuffer, 13);
+	success = DeviceIoControl(hciControlDevice, IOCTL_CONTROL_WRITE_HCI, inputBuffer, 13, outputBuffer, 4, &information, nullptr);
+	if (success)
+	{
+		printBuffer2HexString(outputBuffer, information);
+	}
+	else
+	{
+		printf("Failed to send IOCTL_CONTROL_WRITE_HCI! 0x%X\n", GetLastError());
+	}
+
+	return success;
 }
 
 int control_tracing(void)

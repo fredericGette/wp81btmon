@@ -24,4 +24,5 @@ sc start wp81controldevice
 
 Logs:
 
+sc start wp81dbgPrint
 wp81debug.exe dbgprint | findstr /C:"Control!" /C:"HCI!"

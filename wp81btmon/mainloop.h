@@ -9,18 +9,23 @@
 *
 */
 
+#define MODE_NOTHING 0
+#define MODE_READ_EVENTS 1
+#define MODE_SEND_COMMANDS 2
+
 typedef void(*mainloop_destroy_func) (void *user_data);
 
 typedef void(*mainloop_event_func) (HANDLE fd, uint32_t events, void *user_data);
 typedef void(*mainloop_timeout_func) (int id, void *user_data);
 typedef void(*mainloop_signal_func) (int signum, void *user_data);
 
-void mainloop_init(void);
+void mainloop_init(int mainLoopMode);
 void mainloop_quit(void);
 void mainloop_exit_success(void);
 void mainloop_exit_failure(void);
-int mainloop_run(void);
-int mainloop_run_with_signal(PHANDLER_ROUTINE HandlerRoutine, void *user_data);
+int mainloop_run(int mainLoopMode);
+int mainloop_run_with_signal(PHANDLER_ROUTINE HandlerRoutine, int mainLoopMode);
+void mainloop_cleanup(int mainLoopMode);
 
 void mainloop_activate_tracing(bool channelControl);
 int mainloop_add_fd(HANDLE fd, uint32_t events, mainloop_event_func callback,

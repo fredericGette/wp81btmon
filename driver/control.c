@@ -106,21 +106,29 @@ NTSTATUS SendAnIoctl(PDEVICE_OBJECT TargetDevice,
     KEVENT          event;
     IO_STATUS_BLOCK iosb;
     PIRP            irp;
+	PVOID 			pInputBuffer2;
+	PVOID			pOutputBuffer2;
     
 	DbgPrint("Control!SendAnIoctl TargetDevice=0x%p IoControlCode=0x%X pInputBuffer=0x%p InputBufferLength=0x%p pOutputBuffer=0x%p OutputBufferLength=0x%X",TargetDevice, IoControlCode, pInputBuffer, InputBufferLength, pOutputBuffer, OutputBufferLength);
+
+	// Copy input and output buffer to "non paged" memory buffer to avoid error 0xC000000D with the Bluetooth driver stack.
+	pInputBuffer2 = ExAllocatePoolWithTag(NonPagedPoolNx, InputBufferLength, 'wp81');	
+	pOutputBuffer2 = ExAllocatePoolWithTag(NonPagedPoolNx, OutputBufferLength, 'wp81');	
 
 	if (InputBufferLength > 0) {
 		DbgPrint("Control! InputBuffer:");
 		printBufferContent(pInputBuffer, InputBufferLength);
+		
+		RtlCopyMemory(pInputBuffer2, pInputBuffer, InputBufferLength);
 	}
 
 	KeInitializeEvent(&event, NotificationEvent, FALSE);
 
     irp = IoBuildDeviceIoControlRequest(IoControlCode,
                                         TargetDevice,
-                                        pInputBuffer,
+                                        pInputBuffer2,
                                         InputBufferLength,
-                                        pOutputBuffer,
+                                        pOutputBuffer2,
                                         OutputBufferLength,
                                         FALSE,
                                         &event,
@@ -145,11 +153,15 @@ NTSTATUS SendAnIoctl(PDEVICE_OBJECT TargetDevice,
     }
 
 	if (*information > 0) {
-		DbgPrint("Control! status=0x%X information=%u OutputBuffer:", status, *information);
-		printBufferContent(pOutputBuffer, *information);
+		DbgPrint("Control! status=0x%X information=%u OutputBuffer2:", status, *information);
+		printBufferContent(pOutputBuffer2, *information);
+		
+		RtlCopyMemory(pOutputBuffer, pOutputBuffer2, *information);
 	}
 
 Exit:
+	ExFreePoolWithTag(pInputBuffer2, 'wp81');
+	ExFreePoolWithTag(pOutputBuffer2, 'wp81');
 	DbgPrint("Control!End SendAnIoctl");
     return status;
 }
@@ -228,16 +240,16 @@ NTSTATUS DriverDispatch(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	PVOID pInputBuffer;
 	ULONG_PTR information = 0;
 
-	// https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/buffer-descriptions-for-i-o-control-codes#method_buffered
+    // We must manage the input/output buffer by ourself. Otherwise the Bluetooh driver stack will reject our IOCtls (ERROR_INVALID_USER_BUFFER).
+	// https://learn.microsoft.com/en-us/windows-hardware/drivers/kernel/buffer-descriptions-for-i-o-control-codes#method_neither
 	IoControlCode = Irp->Tail.Overlay.CurrentStackLocation->Parameters.DeviceIoControl.IoControlCode;
 	InputBufferLength = Irp->Tail.Overlay.CurrentStackLocation->Parameters.DeviceIoControl.InputBufferLength;
 	OutputBufferLength = Irp->Tail.Overlay.CurrentStackLocation->Parameters.DeviceIoControl.OutputBufferLength;	
 
 	DbgPrint("Control!DriverDispatch IoControlCode=0x%X InputBufferLength=0x%X OutputBufferLength=0x%X",IoControlCode,InputBufferLength,OutputBufferLength);
 
-	// Method buffered : the input and output buffer are the same.
-	pInputBuffer = Irp->AssociatedIrp.SystemBuffer;
-	pOutputBuffer = Irp->AssociatedIrp.SystemBuffer;
+	pInputBuffer = Irp->Tail.Overlay.CurrentStackLocation->Parameters.DeviceIoControl.Type3InputBuffer;
+	pOutputBuffer = Irp->UserBuffer;
 	DbgPrint("Control!DriverDispatch pInputBuffer=0x%p pOutputBuffer=0x%p", pInputBuffer, pOutputBuffer);
 
 	status = queryFilterDeviceObject(&pFilterDeviceObject);

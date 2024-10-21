@@ -21,5 +21,14 @@ void control_filter_index(uint16_t index);
 void control_message(uint16_t opcode, const void *data, uint16_t size);
 
 void *control_get_tracing(void);
+
 void control_block_bthx(void);
 void control_allow_bthx(void);
+
+bool control_read_events(void);
+void control_init_read_events(void);
+void control_cleanup_read_events(void);
+
+bool control_send_commands(void);
+void control_init_send_commands(void);
+void control_cleanup_send_commands(void);

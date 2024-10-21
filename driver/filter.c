@@ -203,6 +203,7 @@ FilterEvtIoDeviceControl(
 	PDEVICEFILTER_CONTEXT deviceContext = GetFilterContext(device);
 			
 	DbgPrint("HCI!%s!%08X!Receive IoControlCode=0x%X InputBufferLength=%u OutputBufferLength=%u StopBTHX=%s",deviceContext->Name, uid, IoControlCode, InputBufferLength, OutputBufferLength, StopBTHX?"true":"false");
+
 	
     if (StopBTHX == TRUE && (IoControlCode == 0x41040F || IoControlCode == 0x410413)) {
 		// Intercept the IOCTL_BTHX_WRITE_HCI (0x41040F) and the IOCTL_BTHX_READ_HCI (0x410413) sent by the official Bluetooth stack
@@ -222,7 +223,7 @@ FilterEvtIoDeviceControl(
     }
 	
 
-    if (IoControlCode == 0x80002000) {
+    if (IoControlCode == 0x80002003) {
 		// Convert the IOCTL sent by the control driver
 		// 0x80002000 -> IOCTL_BTHX_WRITE_HCI (0x41040F)
         DbgPrint("HCI!%s!%08X!Update IoControlCode 0x80002003 -> 0x41040F", deviceContext->Name, uid);
@@ -230,7 +231,7 @@ FilterEvtIoDeviceControl(
         irp->Tail.Overlay.CurrentStackLocation->Parameters.DeviceIoControl.IoControlCode = 0x41040F;
     }
 
-    if (IoControlCode == 0x80002004) {
+    if (IoControlCode == 0x80002007) {
 		// Convert the IOCTL sent by the control driver
 		// 0x80002003 -> IOCTL_BTHX_READ_HCI (0x410413)
         DbgPrint("HCI!%s!%08X!Update IoControlCode 0x80002007 -> 0x410413", deviceContext->Name, uid);
@@ -247,7 +248,7 @@ FilterEvtIoDeviceControl(
         }
         printBufferContent(buffer, bufSize, deviceContext->Name, uid);
         
-        if (IoControlCode == 0x80002008) {
+        if (IoControlCode == 0x8000200B) {
 			// IOCTL sent by the control driver to block or passthrough the IOCTL sent by the official Bluetooh stack
 			
             unsigned char *p = (unsigned char*)buffer;

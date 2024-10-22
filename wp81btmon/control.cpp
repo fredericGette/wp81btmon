@@ -159,7 +159,7 @@ void control_init_read_events(void)
 	if (hciControlDevice == INVALID_HANDLE_VALUE)
 	{
 		printf("Failed to open wp81controldevice device! 0x%08X\n", GetLastError());
-		return;
+		abort();
 	}
 
 	inputBuffer = (UCHAR*)malloc(4);
@@ -223,7 +223,7 @@ void control_init_send_commands(void)
 	if (hciControlDevice == INVALID_HANDLE_VALUE)
 	{
 		printf("Failed to open wp81controldevice device! 0x%08X\n", GetLastError());
-		return;
+		abort();
 	}
 
 	inputBuffer = (UCHAR*)malloc(262);
@@ -251,25 +251,51 @@ bool control_send_commands(void)
 		return TRUE; // try again.
 	}
 
-	printf("input=[%s]\n", line);
+	DWORD value = 0;
+	DWORD nbOfDigit = 0;
+	DWORD inputBufferLength = 0;
+	for (DWORD i = 0; i < strlen(line); i++) {
+		char c = line[i];
+		if (c >= '0' && c <= '9') {
+			value += c - '0';
+			nbOfDigit++;
+		} 
+		else if (c >= 'A' && c <= 'F') {
+			value += c - 'A' + 10;
+			nbOfDigit++;
+		}
+		else if (c >= 'a' && c <= 'f') {
+			value += c - 'a' + 10;
+			nbOfDigit++;
+		}
+		else if (nbOfDigit != 0) {
+			printf("Invalid input. Must be a list of bytes in hexadecimal.\n", 262 * 3);
+			return TRUE; // try again.
+		}
+
+		if (nbOfDigit == 1) {
+			value = value << 4;
+		} 
+		else if (nbOfDigit == 2) {
+			inputBuffer[inputBufferLength++] = value;
+			value = 0;
+			nbOfDigit = 0;
+		}
+
+		if (inputBufferLength > 262) {
+			printf("Invalid input. Max number of bytes is %d.\n", 262);
+			return TRUE; // try again.
+		}
+	}
+	if (nbOfDigit != 0) {
+		printf("Invalid input. Must be a list of bytes in hexadecimal.\n", 262 * 3);
+		return TRUE; // try again.
+	}
 
 	// Inquiry
 	// 08 00 00 00 01 01 04 05 33 8B 9E 08 00
-	inputBuffer[0] = 0x08;
-	inputBuffer[1] = 0x00;
-	inputBuffer[2] = 0x00;
-	inputBuffer[3] = 0x00;
-	inputBuffer[4] = 0x01;
-	inputBuffer[5] = 0x01;
-	inputBuffer[6] = 0x04;
-	inputBuffer[7] = 0x05;
-	inputBuffer[8] = 0x33;
-	inputBuffer[9] = 0x8B;
-	inputBuffer[10] = 0x9E;
-	inputBuffer[11] = 0x08;
-	inputBuffer[12] = 0x00;
-	printBuffer2HexString(inputBuffer, 13);
-	success = DeviceIoControl(hciControlDevice, IOCTL_CONTROL_WRITE_HCI, inputBuffer, 13, outputBuffer, 4, &information, nullptr);
+	printBuffer2HexString(inputBuffer, inputBufferLength);
+	success = DeviceIoControl(hciControlDevice, IOCTL_CONTROL_WRITE_HCI, inputBuffer, inputBufferLength, outputBuffer, 4, &information, nullptr);
 	if (success)
 	{
 		printBuffer2HexString(outputBuffer, information);

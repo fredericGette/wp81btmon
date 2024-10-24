@@ -69,7 +69,7 @@ powertool -reboot
 > The filter driver automatically starts when the Bluetooth stack boots (ie when the phone boots and Bluetooth is enabled).
 
 > [!NOTE]
-> You can inspect the logs of the drivers using [wp81debug](https://github.com/fredericGette/wp81debug)
+> You can inspect the logs of the drivers using [wp81debug](https://github.com/fredericGette/wp81debug)  
 > `wp81debug.exe dbgprint | findstr /C:"Control!" /C:"HCI!"`  
 
 ## Compilation

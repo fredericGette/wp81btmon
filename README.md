@@ -3,6 +3,9 @@
 Attempt to create an equivalent of some of the [Bluez tools](https://github.com/bluez/bluez/wiki/btmon) for Windows Phone 8.1  
 Currently, the executable *wp81btmon* can block the IOCtls going to/from the Windows Bluetooth stack, listen to HCI events sent by the Qualcomm Bluetooth stack, and send commands to the Qualcomm Bluetooth stack.  
 
+> [!WARNING]
+> Currently only compatible with Nokia Lumia 520.  
+
 ## Usage
 
 ![usage](Capture01.PNG)

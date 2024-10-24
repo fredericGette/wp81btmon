@@ -26,7 +26,7 @@ Currently, the executable *wp81btmon* can block the IOCtls going to/from the Win
 
 #### Legacy driver "wp81controldevice.sys"
 
-This driver allow communication between the *wp81btmon* executable and the filter driver.
+This driver allows communication between the *wp81btmon* executable and the filter driver.
 
 - Manually copy the .sys from the driver folder of this GitHub repository to the shared folder of the phone.
 - Install the driver:

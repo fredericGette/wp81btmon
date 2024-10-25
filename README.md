@@ -75,4 +75,26 @@ powertool -reboot
 ## Compilation
 
 - [Visual Studio 2015 with the Windows Phone SDK](https://github.com/fredericGette/wp81documentation/blob/main/ConsoleApplicationBuilding/README.md).  
-- [Windows Phone Driver Kit](https://github.com/fredericGette/wp81documentation/blob/main/DriverBuilding/README.md).  
+- [Windows Phone Driver Kit](https://github.com/fredericGette/wp81documentation/blob/main/DriverBuilding/README.md).
+
+## HCI packets
+
+Some example of HCI packets:  
+
+- Start *Inquiry* command  
+`08 00 00 00 01 01 04 05 33 8B 9E 08 00`
+
+- Event *Inquiry complete*  
+`03 00 00 00 04 01 01 00`
+
+> [!NOTE]
+> The first 4 bytes are the size of the HCI packet ([little-endian](https://en.wikipedia.org/wiki/Endianness)) - not including the fifth byte.  
+> The fifth byte is the type of the HCI packet:  
+> - 0x01 : COMMAND  
+> - 0x02 : ACL DATA  
+> - 0x03 : SCO DATA  
+> - 0x04 : EVENT
+> 
+> Command can only be sent.  
+> Event can only be received.   
+> Data can be sent or received.  

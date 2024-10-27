@@ -12,6 +12,7 @@
 #define MODE_NOTHING 0
 #define MODE_READ_EVENTS 1
 #define MODE_SEND_COMMANDS 2
+#define MODE_READ_DATA 3
 
 typedef void(*mainloop_destroy_func) (void *user_data);
 

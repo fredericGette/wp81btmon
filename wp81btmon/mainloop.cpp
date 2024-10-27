@@ -40,6 +40,9 @@ void mainloop_init(int mainLoopMode)
 	case MODE_SEND_COMMANDS:
 		control_init_send_commands();
 		break;
+	case MODE_READ_DATA:
+		control_init_read_data();
+		break;
 	}
 }
 
@@ -51,6 +54,9 @@ void mainloop_cleanup(int mainLoopMode)
 		break;
 	case MODE_SEND_COMMANDS:
 		control_cleanup_send_commands();
+		break;
+	case MODE_READ_DATA:
+		control_cleanup_read_data();
 		break;
 	}
 }
@@ -87,6 +93,12 @@ int mainloop_run(int mainLoopMode)
 			break;
 		case MODE_SEND_COMMANDS:
 			if (!control_send_commands())
+			{
+				mainloop_exit_failure();
+			}
+			break;
+		case MODE_READ_DATA:
+			if (!control_read_data())
 			{
 				mainloop_exit_failure();
 			}

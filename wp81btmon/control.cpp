@@ -229,7 +229,7 @@ void control_init_send_commands(void)
 	inputBuffer = (UCHAR*)malloc(262);
 	outputBuffer = (UCHAR*)malloc(4);
 
-	printf("Input HCI commands...\n");
+	printf("Input HCI commands or ACL data...\n");
 }
 
 void control_cleanup_send_commands(void)
@@ -307,6 +307,52 @@ bool control_send_commands(void)
 
 	return success;
 }
+
+
+void control_init_read_data(void)
+{
+	hciControlDevice = CreateFileA("\\\\.\\wp81controldevice", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+	if (hciControlDevice == INVALID_HANDLE_VALUE)
+	{
+		printf("Failed to open wp81controldevice device! 0x%08X\n", GetLastError());
+		abort();
+	}
+
+	inputBuffer = (UCHAR*)malloc(4);
+	outputBuffer = (UCHAR*)malloc(1030);
+
+	printf("Start reading HCI ACL data...\n");
+}
+
+void control_cleanup_read_data(void)
+{
+	CloseHandle(hciControlDevice);
+	free(inputBuffer);
+	free(outputBuffer);
+}
+
+bool control_read_data(void)
+{
+	DWORD information = 0;
+	bool success;
+
+	inputBuffer[0] = 0x02;
+	inputBuffer[1] = 0x00;
+	inputBuffer[2] = 0x00;
+	inputBuffer[3] = 0x00;
+	success = DeviceIoControl(hciControlDevice, IOCTL_CONTROL_READ_HCI, inputBuffer, 4, outputBuffer, 262, &information, nullptr);
+	if (success)
+	{
+		printBuffer2HexString(outputBuffer, information);
+	}
+	else
+	{
+		printf("Failed to send IOCTL_CONTROL_READ_HCI! 0x%X\n", GetLastError());
+	}
+
+	return success;
+}
+
 
 int control_tracing(void)
 {

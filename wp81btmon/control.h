@@ -32,3 +32,7 @@ void control_cleanup_read_events(void);
 bool control_send_commands(void);
 void control_init_send_commands(void);
 void control_cleanup_send_commands(void);
+
+bool control_read_data(void);
+void control_init_read_data(void);
+void control_cleanup_read_data(void);

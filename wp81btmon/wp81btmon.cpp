@@ -38,7 +38,8 @@ static void usage(void)
 		"\t-b, --block            Block BTHX IoCtl\n"
 		"\t-a, --allow            Allow BTHX IoCtl\n"
 		"\t-e, --event            Read events\n"
-		"\t-c, --command          Interactivley send commands\n"
+		"\t-d, --data             Read data\n"
+		"\t-c, --command          Interactivley send commands and data\n"
 		"\t-v, --version          Show version\n"
 		"\t-h, --help             Show help options\n");
 }
@@ -47,6 +48,7 @@ static const struct option main_options[] = {
 	{ "block",     no_argument,       NULL, 'b' },
 	{ "allow",     no_argument,       NULL, 'a' },
 	{ "event",     no_argument,       NULL, 'e' },
+	{ "data",      no_argument,       NULL, 'd' },
 	{ "command",   no_argument,       NULL, 'c' },
 	{ "version",   no_argument,       NULL, 'v' },
 	{ "help",      no_argument,       NULL, 'h' },
@@ -69,7 +71,7 @@ int main(int argc, char* argv[])
 		int opt;
 
 		opt = getopt_long(argc, argv,
-			"baecvh",
+			"baedcvh",
 			main_options, NULL);
 
 		if (opt < 0) {
@@ -86,6 +88,9 @@ int main(int argc, char* argv[])
 			break;
 		case 'e':
 			mainLoopMode = MODE_READ_EVENTS;
+			break;
+		case 'd':
+			mainLoopMode = MODE_READ_DATA;
 			break;
 		case 'c':
 			mainLoopMode = MODE_SEND_COMMANDS;
